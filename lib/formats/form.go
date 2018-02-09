@@ -7,7 +7,7 @@ import (
 	"github.com/gorilla/schema"
 )
 
-const formResourceType string = "application/x-www-form-urlencoded"
+const FormResourceType string = "application/x-www-form-urlencoded"
 
 type Form struct {
 }

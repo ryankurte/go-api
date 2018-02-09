@@ -13,17 +13,24 @@ type Formatter interface {
 
 // Default formatting adaptors
 var formatters = map[string]Formatter{
-	jsonResourceType: NewJSON(),
-	xmlResourceType:  NewXML(),
-	yamlResourceType: NewYAML(),
-	formResourceType: NewForm(),
+	JSONResourceType: NewJSON(),
+	XMLResourceType:  NewXML(),
+	YAMLResourceType: NewYAML(),
+	FormResourceType: NewForm(),
 }
 
 // DefaultResponseFormatter defines the default encoding in the absence of headers
-var DefaultResponseFormatter = jsonResourceType
+var DefaultResponseFormatter = JSONResourceType
+
+// DefaultRequestFormatter defines the default decoding in the absence of headers
+var DefaultRequestFormatter = JSONResourceType
 
 // Decode Generic decode function (uses http accept header)
 func Decode(t string, r *http.Request, i interface{}) error {
+	if t == "" {
+		t = DefaultRequestFormatter
+	}
+
 	// Find formatter and decode
 	if f, ok := formatters[t]; ok {
 		return f.Decode(r, i)

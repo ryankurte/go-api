@@ -6,7 +6,7 @@ import (
 	"net/http"
 )
 
-const xmlResourceType string = "application/xml"
+const XMLResourceType string = "application/xml"
 
 type XML struct {
 }

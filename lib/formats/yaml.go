@@ -8,7 +8,7 @@ import (
 	"github.com/go-yaml/yaml"
 )
 
-const yamlResourceType string = "application/yaml"
+const YAMLResourceType string = "application/yaml"
 
 type YAML struct {
 }

@@ -6,7 +6,7 @@ import (
 	"net/http"
 )
 
-const jsonResourceType string = "application/json"
+const JSONResourceType string = "application/json"
 
 type JSON struct {
 }
