@@ -3,9 +3,7 @@ package formats
 import (
 	"fmt"
 	"net/http"
-)
 
-import (
 	"github.com/gorilla/schema"
 )
 

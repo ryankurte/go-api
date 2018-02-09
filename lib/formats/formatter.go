@@ -15,8 +15,12 @@ type Formatter interface {
 var formatters = map[string]Formatter{
 	jsonResourceType: NewJSON(),
 	xmlResourceType:  NewXML(),
+	yamlResourceType: NewYAML(),
 	formResourceType: NewForm(),
 }
+
+// DefaultResponseFormatter defines the default encoding in the absence of headers
+var DefaultResponseFormatter = jsonResourceType
 
 // Decode Generic decode function (uses http accept header)
 func Decode(t string, r *http.Request, i interface{}) error {
@@ -37,7 +41,15 @@ func Encode(accepts string, i interface{}) (string, string, error) {
 		return "", "", fmt.Errorf("Malformed accept header (%s)", accepts)
 	}
 
-	// Locate and use the first matching formatter
+	// No accept types, fall back to default
+	if len(types) == 0 {
+		if f, ok := formatters[DefaultResponseFormatter]; ok {
+			s, e := f.Encode(i)
+			return s, DefaultResponseFormatter, e
+		}
+	}
+
+	// List of types, locate and use the first matching formatter
 	for _, t := range types {
 		if f, ok := formatters[t]; ok {
 			s, e := f.Encode(i)
