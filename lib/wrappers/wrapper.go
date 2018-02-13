@@ -2,6 +2,7 @@ package wrappers
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 	"reflect"
 	"strings"
@@ -9,16 +10,35 @@ import (
 	"github.com/asaskevich/govalidator"
 )
 
-func BuildEndpoint(method string, ctx interface{}, f interface{}) (interface{}, error) {
-	vf := reflect.ValueOf(f)
+// HTTPHandler is a standard http endpoint handler for binding into a http mux
+type HTTPHandler func(ctx interface{}, rw http.ResponseWriter, req *http.Request)
+
+// ErrorHandler type for handling errors in wrapped functions or encoders/decoders
+type ErrorHandler func(ctx interface{}, rw http.ResponseWriter, req *http.Request, format string, args ...interface{})
+
+// DefaultError ErrorHandler used if no error handling argument is passed to BuildEndpoint
+func DefaultError(ctx interface{}, rw http.ResponseWriter, req *http.Request, format string, args ...interface{}) {
+	rw.WriteHeader(http.StatusInternalServerError)
+	msg := fmt.Sprintf(format, args)
+	log.Println(msg)
+	rw.Write([]byte(msg))
+}
+
+// BuildEndpoint Build and return and endpoint handler for the provided function and method
+// Supports handler functions with (i InputType), (i InputType, h http.Header) or (ctx interface{}, i InputType, http.header) input parameters
+// and (OutputType, error), (OutputType, int, error) or (OutputType, int, http.Header, error) output parameters where int is a http.Status code.
+// args may include an ErrorHandler to override the DefaultError handler.
+func BuildEndpoint(method string, fn interface{}, args ...interface{}) (HTTPHandler, error) {
+	vf := reflect.ValueOf(fn)
 	ftype := vf.Type()
 
+	// Validate function meets one of the supported specifications
 	if ftype.Kind() != reflect.Func {
 		return nil, fmt.Errorf("Method '%s' should be type %s but got %s", ftype.Name(), reflect.Func, ftype.Kind())
 	}
 
 	argCount := ftype.NumIn()
-	if argCount < 2 || argCount > 3 {
+	if argCount < 1 || argCount > 3 {
 		return nil, fmt.Errorf("Function %s invalid input parameter count", ftype.Name())
 	}
 	returnCount := ftype.NumOut()
@@ -39,7 +59,12 @@ func BuildEndpoint(method string, ctx interface{}, f interface{}) (interface{}, 
 	}
 
 	// Parse input and output types
-	inputType := ftype.In(1)
+	var inputType reflect.Type
+	if argCount == 1 {
+		inputType = ftype.In(0)
+	} else {
+		inputType = ftype.In(1)
+	}
 	outputType := ftype.Out(0)
 
 	// Generate a wrapper function for binding
@@ -48,10 +73,20 @@ func BuildEndpoint(method string, ctx interface{}, f interface{}) (interface{}, 
 	return w, nil
 }
 
-// Generate a gocraft compatible endpoint wrapper function with object mapping and validation
-func generateWrapper(method string, vf reflect.Value, inputType reflect.Type, outputType reflect.Type) interface{} {
+// Generate a gocraft or gorilla/mux compatible endpoint wrapper function with object mapping and validation
+func generateWrapper(method string, vf reflect.Value, inputType, outputType reflect.Type, args ...interface{}) HTTPHandler {
 	numIn := vf.Type().NumIn()
 	numOut := vf.Type().NumOut()
+
+	// Process varadic arguments
+	errorHandler := DefaultError
+	for _, a := range args {
+		switch a := a.(type) {
+		// Bind error handler argument if present
+		case ErrorHandler:
+			errorHandler = a
+		}
+	}
 
 	return func(ctxIn interface{}, rw http.ResponseWriter, req *http.Request) {
 		var err error
@@ -60,16 +95,14 @@ func generateWrapper(method string, vf reflect.Value, inputType reflect.Type, ou
 		input := reflect.New(inputType)
 		err = decodeRequest(method, req, input.Interface())
 		if err != nil {
-			rw.WriteHeader(http.StatusBadRequest)
-			fmt.Fprintf(rw, "Data decoding error %s", err)
+			errorHandler(ctxIn, rw, req, "Data decoding error %s", err)
 			return
 		}
 
 		// Validate input fields
 		_, err = govalidator.ValidateStruct(input.Interface())
 		if err != nil {
-			rw.WriteHeader(http.StatusBadRequest)
-			fmt.Fprintf(rw, "Data validation error %s", err)
+			errorHandler(ctxIn, rw, req, "Data validation error %s", err)
 			return
 		}
 
@@ -83,11 +116,9 @@ func generateWrapper(method string, vf reflect.Value, inputType reflect.Type, ou
 		case 3:
 			inputs = []reflect.Value{reflect.ValueOf(ctxIn), input.Elem(), reflect.ValueOf(req.Header)}
 		default:
-			fmt.Printf("INVALID INPUT COUNT %d", numIn)
+			errorHandler(ctxIn, rw, req, "Invalid input parameter count")
 			return
 		}
-
-		fmt.Printf("Inputs: %+v", inputs)
 
 		// Call reflected function
 		outputs := vf.Call(inputs)
@@ -95,8 +126,7 @@ func generateWrapper(method string, vf reflect.Value, inputType reflect.Type, ou
 		// Parse function call errors
 		err, _ = reflect.ValueOf(outputs[numOut-1]).Interface().(error)
 		if err != nil {
-			rw.WriteHeader(http.StatusInternalServerError)
-			fmt.Fprintf(rw, "Internal Server Error", err)
+			errorHandler(ctxIn, rw, req, "Internal Server Error %s", err)
 			return
 		}
 
@@ -118,8 +148,7 @@ func generateWrapper(method string, vf reflect.Value, inputType reflect.Type, ou
 		output := outputs[0].Interface()
 		err = encodeResponse(req, output, statusCode, rw)
 		if err != nil {
-			rw.WriteHeader(http.StatusInternalServerError)
-			fmt.Fprintf(rw, "Data encoding error %s", err)
+			errorHandler(ctxIn, rw, req, "Data encoding error %s", err)
 			return
 		}
 	}

@@ -1,7 +1,6 @@
 package formats
 
 import (
-	"fmt"
 	"regexp"
 	"sort"
 	"strconv"
@@ -31,15 +30,15 @@ func (slice acceptTypes) Swap(i, j int) {
 	slice[i], slice[j] = slice[j], slice[i]
 }
 
-// Parses an HTTP accept header to return an ordered list of content types
-func ParseAcceptHeader(accept string) ([]string, error) {
+// ParseAcceptHeader Parses an HTTP accept header to return an ordered list of content types
+func ParseAcceptHeader(accept string) []string {
 	result := make([]string, 0)
 
 	var types acceptTypes
 
 	// Check for match
 	if res := acceptRegex.MatchString(accept); res == false {
-		return result, fmt.Errorf("Invalid accept header")
+		return result
 	}
 
 	// Locate all accept types
@@ -61,5 +60,5 @@ func ParseAcceptHeader(accept string) ([]string, error) {
 		result = append(result, t.name)
 	}
 
-	return result, nil
+	return result
 }

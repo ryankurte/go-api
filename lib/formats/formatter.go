@@ -43,10 +43,7 @@ func Decode(t string, r *http.Request, i interface{}) error {
 // Encode Generic encode function
 func Encode(accepts string, i interface{}) (string, string, error) {
 	// Parse accept types
-	types, err := ParseAcceptHeader(accepts)
-	if err != nil {
-		return "", "", fmt.Errorf("Malformed accept header (%s)", accepts)
-	}
+	types := ParseAcceptHeader(accepts)
 
 	// No accept types, fall back to default
 	if len(types) == 0 {

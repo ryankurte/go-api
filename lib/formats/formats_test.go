@@ -13,11 +13,7 @@ func TestMain(t *testing.T) {
 	t.Run("Parse accept headers", func(t *testing.T) {
 		expected := []string{"text/html", "text/x-c", "text/x-dvi", "text/plain"}
 
-		res, err := ParseAcceptHeader(testStr)
-		if err != nil {
-			t.Error(err)
-		}
-
+		res := ParseAcceptHeader(testStr)
 		if !reflect.DeepEqual(res, expected) {
 			t.Errorf("Accept headers did not match (received %+v expected %+v)",
 				res, expected)
