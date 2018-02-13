@@ -1,13 +1,19 @@
 package router
 
 import (
-	"github.com/gorilla/mux"
+	"fmt"
+	"net/http"
+
+	//"github.com/gorilla/mux"
+	"github.com/gocraft/web"
+
+	"github.com/ryankurte/go-api-server/lib/wrappers"
 )
 
 // Router instance
 type Router struct {
 	// Underlying gocraft/web router instance
-	router *mux.Router
+	router *web.Router
 	// Router context object
 	ctx interface{}
 	// Path of the current router
@@ -15,29 +21,84 @@ type Router struct {
 	// Endpoints attached to the router
 	endpoints []endpoint
 	// Error handling function attached to the router
-	//errorHandler errors.ErrorHandler
+	errorHandler wrappers.ErrorHandler
 }
 
-// endpoint for internal use
-type endpoint struct {
-	path string
-	// Input object
-	i interface{}
-	// Output object
-	o interface{}
-	// Base function
-	f interface{}
-	// Wrapped function
-	w interface{}
-}
-
-// Create an API router instance (internal use only)
-func newRouter(router *mux.Router, ctx interface{}, path string) Router {
+// New Creates an API router instance (internal use only)
+func New(router *web.Router, ctx interface{}, path string) Router {
 	return Router{
-		router:    router,
-		ctx:       ctx,
-		path:      path,
-		endpoints: make([]endpoint, 0),
-		//errorHandler: errors.DefaultErrorHandler,
+		router:       router,
+		ctx:          ctx,
+		path:         path,
+		endpoints:    make([]endpoint, 0),
+		errorHandler: wrappers.DefaultErrorHandler,
 	}
+}
+
+// RegisterEndpoint Register a route to the API router.
+// This takes a endpoint of the form func (c *context) endpoint(i inputStruct) (o outputStruct, error)
+// and generates an wrapper to handle translation and validation of input and output structures,
+// as well as error handling for the endpoint.
+func (r *Router) RegisterEndpoint(route string, method string, f interface{}) error {
+	// Fetch context
+	ctx := r.ctx
+
+	// Build endpoint wrapper
+	w, err := wrappers.BuildEndpoint(method, ctx, f)
+	if err != nil {
+		return err
+	}
+
+	// Fetch endpoint input/output instances
+	inType, outType := wrappers.GetTypes(f)
+
+	// Save endpoint object for later traversal
+	path := fmt.Sprintf("%s/%s:%s", r.path, route, method)
+	r.endpoints = append(r.endpoints, endpoint{
+		path: path,
+		i:    inType,
+		o:    outType,
+		f:    f,
+		w:    w,
+	})
+
+	// Bind to router
+	switch method {
+	case http.MethodGet:
+		r.router.Get(route, w)
+	case http.MethodPost:
+		r.router.Post(route, w)
+	case http.MethodPut:
+		r.router.Put(route, w)
+	case http.MethodDelete:
+		r.router.Delete(route, w)
+	case http.MethodPatch:
+		r.router.Patch(route, w)
+	case http.MethodHead:
+		r.router.Head(route, w)
+	case http.MethodOptions:
+		r.router.Options(route, w)
+	default:
+		return fmt.Errorf("Invalid HTTP method: %s", method)
+	}
+
+	return nil
+}
+
+// RegisterMiddleware Attach dependency injected middleware to API router.
+// This is not yet supported
+func (r *Router) RegisterMiddleware() error {
+	return fmt.Errorf("Dependency injected middleware not yet supported")
+}
+
+// Middleware Attach standard middleware to an API router
+func (r *Router) Middleware(fn interface{}) *Router {
+	r.router.Middleware(fn)
+	return r
+}
+
+// GetBaseRouter Fetch the underlying router.
+// Note that operations on this will bypass any GoAPI magic
+func (r *Router) GetBaseRouter() *web.Router {
+	return r.router
 }

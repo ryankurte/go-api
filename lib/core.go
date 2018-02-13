@@ -2,39 +2,42 @@ package api
 
 import (
 	"errors"
-	"github.com/gorilla/mux"
+	"github.com/gocraft/web"
 
 	log "github.com/sirupsen/logrus"
 
 	"github.com/ryankurte/go-api-server/lib/options"
+	"github.com/ryankurte/go-api-server/lib/router"
 	"github.com/ryankurte/go-api-server/lib/servers"
 )
 
 // API is a core API server instance
 type API struct {
+	router.Router
 	options *options.Base
 	logger  log.FieldLogger
 	server  servers.Handler
 }
 
-// NewAPI creates a new API server
-func NewAPI(o *options.Base) (*API, error) {
+// New creates a new API server
+func New(ctx interface{}, o *options.Base) (*API, error) {
 	var err error
 	a := API{
 		options: o,
 		logger:  log.New().WithField("module", "core"),
 	}
 
-	// TODO: create API router
-	r := mux.NewRouter()
+	// Create an API router
+	base := web.New(ctx)
+	a.Router = router.New(base, ctx, "")
 
 	// Create server instance
 	var server servers.Handler
 	switch o.Mode {
 	case options.ModeHTTP:
-		server = servers.NewHTTP(o, r)
+		server = servers.NewHTTP(o, base)
 	case options.ModeLambda:
-		server = servers.NewLambda(o, r)
+		server = servers.NewLambda(o, base)
 	default:
 		log.Errorf("Unhandled mode: '%s'", o.Mode)
 		return nil, errors.New("unhandled server mode")

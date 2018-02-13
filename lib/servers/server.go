@@ -2,6 +2,7 @@ package servers
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -28,8 +29,9 @@ func (s *HTTP) Run() {
 	var err error
 
 	contextHandler := gcontext.ClearHandler(s.handler)
+	bindAddress := fmt.Sprintf("%s:%s", s.options.BindAddress, s.options.Port)
 
-	s.server = http.Server{Addr: s.options.BindAddress, Handler: contextHandler}
+	s.server = http.Server{Addr: bindAddress, Handler: contextHandler}
 
 	if s.options.NoTLS {
 		s.logger.Warn("TLS IS DISABLED. USE EXTERNAL TLS TERMINATION.")

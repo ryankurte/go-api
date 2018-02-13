@@ -30,7 +30,7 @@ func decodeRequest(method string, req *http.Request, input interface{}) error {
 	return err
 }
 
-func encodeResponse(req *http.Request, output interface{}, status int, rw http.ResponseWriter) error {
+func encodeResponse(rw http.ResponseWriter, req *http.Request, output interface{}, status int) error {
 	// Fetch accept header
 	acceptType := req.Header.Get(AcceptKey)
 
