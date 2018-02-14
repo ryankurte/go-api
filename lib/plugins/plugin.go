@@ -4,3 +4,6 @@ package plugins
 type RegisterHandler interface {
 	Register(route string, method string, input interface{}, output interface{})
 }
+
+type PluginHandler struct {
+}

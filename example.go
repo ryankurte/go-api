@@ -3,14 +3,13 @@ package main
 import (
 	"os"
 
-	"github.com/jessevdk/go-flags"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/ryankurte/go-api-server/lib"
 	"github.com/ryankurte/go-api-server/lib/options"
 )
 
-// Application configuration object
+// AppConfig Application configuration object
 type AppConfig struct {
 	options.Base
 }
@@ -56,16 +55,16 @@ func (c *APIContext) FakeEndpoint(i Request) (Response, error) {
 }
 
 func main() {
-	ctx := AppContext{"Whoop whoop"}
-
-	options := AppConfig{}
-	_, err := flags.Parse(&options)
+	// Load application config
+	o := AppConfig{}
+	err := options.Parse(&o)
 	if err != nil {
 		os.Exit(0)
 	}
 
-	// Create API instance
-	api, err := api.New(ctx, &options.Base)
+	// Create API instance with base context
+	ctx := AppContext{"Whoop whoop"}
+	api, err := api.New(ctx, &o.Base)
 	if err != nil {
 		log.Print(err)
 		os.Exit(-2)
@@ -81,12 +80,11 @@ func main() {
 	api.RegisterEndpoint("/", "POST", (*AppContext).FakeEndpoint)
 	api.RegisterEndpoint("/", "GET", (*AppContext).FakeEndpoint)
 
-	// Create subrouter and register endpoint
-	//apiCtx := APIContext{}
-	//sr := api.CreateSubRouter(apiCtx, "/api")
-	//sr.RegisterEndpoint("/test", "POST", (*APIContext).FakeEndpoint)
+	// Create subrouter with sub context and register endpoint
+	apiCtx := APIContext{}
+	sr := api.Subrouter(apiCtx, "/api")
+	sr.RegisterEndpoint("/test", "POST", (*APIContext).FakeEndpoint)
 
 	// Start API server
 	api.Run()
-
 }

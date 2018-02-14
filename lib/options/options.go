@@ -1,5 +1,9 @@
 package options
 
+import (
+	"github.com/jessevdk/go-flags"
+)
+
 // Base are base API server options
 type Base struct {
 	Mode string `short:"m" long:"mode" description:"Server mode" choice:"http" choice:"lambda" default:"http"`
@@ -17,3 +21,9 @@ const (
 	ModeLambda = "lambda"
 	ModeHTTP   = "http"
 )
+
+// Parse parses command line options
+func Parse(i interface{}) error {
+	_, err := flags.Parse(i)
+	return err
+}

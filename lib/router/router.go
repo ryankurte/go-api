@@ -85,6 +85,18 @@ func (r *Router) RegisterEndpoint(route string, method string, f interface{}) er
 	return nil
 }
 
+// Subrouter Creates a subrouter with a given context and path.
+// As with gocraft, this context must have a pointer to the parent context as it's first field
+func (r *Router) Subrouter(ctx interface{}, path string) *Router {
+	// Create child from base router
+	b := r.router.Subrouter(ctx, path)
+
+	// Create API Router instance
+	sr := New(b, ctx, path)
+
+	return &sr
+}
+
 // RegisterMiddleware Attach dependency injected middleware to API router.
 // This is not yet supported
 func (r *Router) RegisterMiddleware() error {
