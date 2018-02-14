@@ -67,7 +67,7 @@ func validateFn(fn interface{}) error {
 
 	// Validate function meets one of the supported specifications
 	if ftype.Kind() != reflect.Func {
-		return fmt.Errorf("Method '%s' should be type %s but got %s", ftype.Name(), reflect.Func, ftype.Kind())
+		return fmt.Errorf("Method '%s' should be type `%s` but got `%s` (%+V)", ftype.Name(), reflect.Func, ftype.Kind(), fn)
 	}
 
 	argCount := ftype.NumIn()

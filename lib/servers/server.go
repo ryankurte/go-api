@@ -33,6 +33,8 @@ func (s *HTTP) Run() {
 
 	s.server = http.Server{Addr: bindAddress, Handler: contextHandler}
 
+	s.logger.Infof("Starting http server at %s", bindAddress)
+
 	if s.options.NoTLS {
 		s.logger.Warn("TLS IS DISABLED. USE EXTERNAL TLS TERMINATION.")
 		err = s.server.ListenAndServe()
@@ -46,6 +48,10 @@ func (s *HTTP) Run() {
 	if err != nil {
 		s.logger.Errorf("ListenAndServe error: %s", err)
 	}
+}
+
+func (s *HTTP) Start() {
+	go s.Run()
 }
 
 // Close exits a server instance

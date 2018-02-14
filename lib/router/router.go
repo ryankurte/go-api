@@ -7,6 +7,8 @@ import (
 	//"github.com/gorilla/mux"
 	"github.com/gocraft/web"
 
+	log "github.com/sirupsen/logrus"
+
 	"github.com/ryankurte/go-api-server/lib/wrappers"
 )
 
@@ -40,11 +42,11 @@ func New(router *web.Router, ctx interface{}, path string) Router {
 // and generates an wrapper to handle translation and validation of input and output structures,
 // as well as error handling for the endpoint.
 func (r *Router) RegisterEndpoint(route string, method string, f interface{}) error {
-	// Fetch context
-	ctx := r.ctx
+
+	log.Infof("Router '%s' attaching route %s with method %s (f: %+V)", r.path, route, method, f)
 
 	// Build endpoint wrapper
-	w, err := wrappers.BuildEndpoint(method, ctx, f)
+	w, err := wrappers.BuildEndpoint(method, f)
 	if err != nil {
 		return err
 	}
