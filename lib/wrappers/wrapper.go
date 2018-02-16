@@ -6,13 +6,13 @@ import (
 	"reflect"
 	"strings"
 
-	log "github.com/sirupsen/logrus"
-
 	"github.com/asaskevich/govalidator"
+	"github.com/gocraft/web"
+	log "github.com/sirupsen/logrus"
 )
 
 // HTTPHandler is a standard http endpoint handler for binding into a http mux
-type HTTPHandler func(ctx interface{}, rw http.ResponseWriter, req *http.Request)
+type HTTPHandler func(ctx interface{}, rw web.ResponseWriter, req *web.Request)
 
 // ErrorHandler type for handling errors in wrapped functions or encoders/decoders
 type ErrorHandler func(ctx interface{}, rw http.ResponseWriter, req *http.Request, format string, args ...interface{})
@@ -67,7 +67,7 @@ func validateFn(fn interface{}) error {
 
 	// Validate function meets one of the supported specifications
 	if ftype.Kind() != reflect.Func {
-		return fmt.Errorf("Method '%s' should be type `%s` but got `%s` (%+V)", ftype.Name(), reflect.Func, ftype.Kind(), fn)
+		return fmt.Errorf("Method '%s' should be type `%s` but got `%s` (%+v)", ftype.Name(), reflect.Func, ftype.Kind(), fn)
 	}
 
 	argCount := ftype.NumIn()
@@ -149,25 +149,27 @@ func generateWrapper(method string, fn interface{}, args ...interface{}) HTTPHan
 		}
 	}
 
-	return func(ctxIn interface{}, rw http.ResponseWriter, req *http.Request) {
+	return func(ctx interface{}, rw web.ResponseWriter, r *web.Request) {
 		var err error
+
+		req := r.Request
 
 		// Coerce context and input type
 		input := reflect.New(inputType)
 		err = decoder(method, req, input.Interface())
 		if err != nil {
-			errorHandler(ctxIn, rw, req, "Data decoding error %s", err)
+			errorHandler(ctx, rw, req, "Data decoding error %s", err)
 			return
 		}
 
 		// Validate input fields
 		ok, err := validateHander(input.Interface())
 		if err != nil {
-			errorHandler(ctxIn, rw, req, "Input data validation error %s", err)
+			errorHandler(ctx, rw, req, "Input data validation error %s", err)
 			return
 		}
 		if !ok {
-			errorHandler(ctxIn, rw, req, "Input data validation failed")
+			errorHandler(ctx, rw, req, "Input data validation failed")
 			return
 		}
 
@@ -177,11 +179,11 @@ func generateWrapper(method string, fn interface{}, args ...interface{}) HTTPHan
 		case 1:
 			inputs = []reflect.Value{input.Elem()}
 		case 2:
-			inputs = []reflect.Value{reflect.ValueOf(ctxIn), input.Elem()}
+			inputs = []reflect.Value{reflect.ValueOf(ctx), input.Elem()}
 		case 3:
-			inputs = []reflect.Value{reflect.ValueOf(ctxIn), input.Elem(), reflect.ValueOf(req.Header)}
+			inputs = []reflect.Value{reflect.ValueOf(ctx), input.Elem(), reflect.ValueOf(req.Header)}
 		default:
-			errorHandler(ctxIn, rw, req, "Invalid input parameter count")
+			errorHandler(ctx, rw, req, "Invalid input parameter count")
 			return
 		}
 
@@ -191,7 +193,7 @@ func generateWrapper(method string, fn interface{}, args ...interface{}) HTTPHan
 		// Parse function call errors
 		err, _ = reflect.ValueOf(outputs[numOut-1]).Interface().(error)
 		if err != nil {
-			errorHandler(ctxIn, rw, req, "Internal Server Error %s", err)
+			errorHandler(ctx, rw, req, "Internal Server Error %s", err)
 			return
 		}
 
@@ -215,18 +217,18 @@ func generateWrapper(method string, fn interface{}, args ...interface{}) HTTPHan
 		// Validate output fields
 		ok, err = validateHander(output)
 		if err != nil {
-			errorHandler(ctxIn, rw, req, "Output data validation error %s", err)
+			errorHandler(ctx, rw, req, "Output data validation error %s", err)
 			return
 		}
 		if !ok {
-			errorHandler(ctxIn, rw, req, "Output data validation failed")
+			errorHandler(ctx, rw, req, "Output data validation failed")
 			return
 		}
 
 		// Encode outputs
 		err = encoder(rw, req, output, statusCode)
 		if err != nil {
-			errorHandler(ctxIn, rw, req, "Data encoding error %s", err)
+			errorHandler(ctx, rw, req, "Data encoding error %s", err)
 			return
 		}
 	}
