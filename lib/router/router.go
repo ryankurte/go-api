@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"net/http"
 
-	//"github.com/gorilla/mux"
 	"github.com/gocraft/web"
 
 	log "github.com/sirupsen/logrus"
