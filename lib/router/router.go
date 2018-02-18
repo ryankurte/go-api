@@ -43,19 +43,21 @@ func wrapGocraft(h wrappers.HTTPHandler) func(ctx interface{}, rw web.ResponseWr
 }
 
 // RegisterEndpoint Register a route to the API router.
-// This takes a endpoint of the form func (c *context) endpoint(i inputStruct) (o outputStruct, error)
-// and generates an wrapper to handle translation and validation of input and output structures,
+// This takes a typed endpoint and generates a wrapper to handle
+// translation and validation of input and output structures,
 // as well as error handling for the endpoint.
 func (r *Router) RegisterEndpoint(route string, method string, f interface{}) error {
 
 	log.Infof("Router '%s' attaching route %s with method %s (f: %+V)", r.path, route, method, f)
+
+	var w interface{}
 
 	// Build endpoint wrapper
 	h, err := wrappers.BuildEndpoint(method, f)
 	if err != nil {
 		return err
 	}
-	w := wrapGocraft(h)
+	w = wrapGocraft(h)
 
 	// Fetch endpoint input/output instances
 	inType, outType := wrappers.GetTypes(f)
@@ -71,25 +73,30 @@ func (r *Router) RegisterEndpoint(route string, method string, f interface{}) er
 	})
 
 	// Bind to router
+	return r.Register(route, method, w)
+}
+
+// Register registers a basic http or gocraft/web route handler without any modification
+// This does not currently call any meta plugins.
+func (r *Router) Register(route string, method string, f interface{}) error {
 	switch method {
 	case http.MethodGet:
-		r.router.Get(route, w)
+		r.router.Get(route, f)
 	case http.MethodPost:
-		r.router.Post(route, w)
+		r.router.Post(route, f)
 	case http.MethodPut:
-		r.router.Put(route, w)
+		r.router.Put(route, f)
 	case http.MethodDelete:
-		r.router.Delete(route, w)
+		r.router.Delete(route, f)
 	case http.MethodPatch:
-		r.router.Patch(route, w)
+		r.router.Patch(route, f)
 	case http.MethodHead:
-		r.router.Head(route, w)
+		r.router.Head(route, f)
 	case http.MethodOptions:
-		r.router.Options(route, w)
+		r.router.Options(route, f)
 	default:
 		return fmt.Errorf("Invalid HTTP method: %s", method)
 	}
-
 	return nil
 }
 

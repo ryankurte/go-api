@@ -45,7 +45,20 @@ if err != nil {
 } 
 ```
 
-Create a base application context with handlers for [gocraft/web](https://github.com/gocraft/web) and a base `api.API` router, the attach handlers to the API router.
+Create a base application context with type handlers and a base `api.API` router, the attach handlers to the API router.
+
+Handler functions support input parameters:
+- `(ctx ContextType)`
+- `(ctx ContextType, i InputType)`
+- `(ctx ContextType, i InputType, http.header)`
+
+And output parameters:
+- `(OutputType, error)`
+- `(OutputType, int, error)`
+- `(OutputType, int, http.Header, error)` 
+
+The underlying mux is [gocraft/web](https://github.com/gocraft/web).
+
 ``` go
 import (
     "github.com/ryankurte/go-api-server/lib/options"
@@ -55,7 +68,7 @@ type AppContext struct {
 	...
 }
 
-func (c *AppContext) FakeEndpoint(i Request) (Response, error) {
+func (c *AppContext) FakeEndpoint(a AppContext, i Request) (Response, error) {
 	...
 }
 
@@ -70,8 +83,8 @@ err = api.RegisterEndpoint("/", "POST", (*AppContext).FakeEndpoint)
 
 ```
 
-This supports handler functions with input parameters `(ctx ContextType)`, `(ctx ContextType, i InputType)` or `(ctx ContextType, i InputType, http.header)` and `(OutputType, error)`, `(OutputType, int, error)` or `(OutputType, int, http.Header, error)` output parameters where int is a http.Status code.
-Input and output types are validated after decoding and prior to encoding using [asaskevich/govalidator](https://github.com/asaskevich/govalidator).
+
+Where int is a http.Status code. Input and output types are validated after decoding and prior to encoding using [asaskevich/govalidator](https://github.com/asaskevich/govalidator).
 
 
 You can then launch a server with `api.Run()` and exit wth `api.Close()`.
