@@ -1,17 +1,20 @@
 package wrappers
 
 import (
-	"context"
+	"bytes"
+	"encoding/json"
 	"net/http"
+	"net/http/httptest"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
+	//"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
-type MockFunc func(ctx context.Context, test map[string]string, h http.Header) (map[string]string, int, http.Header, error)
+type MockFunc func(ctx APICtx, test map[string]string, h http.Header) (map[string]string, int, http.Header, error)
 
 type apiReq struct {
-	Query string `query:"testQuery"`
+	Query string
 }
 
 type Test struct {
@@ -24,41 +27,44 @@ type Input struct {
 	V string
 }
 
+type APICtx struct {
+}
+
 func TestWrappers(t *testing.T) {
 	tests := []Test{
 		{
-			"Wraps object input",
-			func(test Input) (Input, int, http.Header, error) {
-				return test, http.StatusOK, http.Header{}, nil
+			"Wraps context input",
+			func(ctx APICtx) (Input, error) {
+				return Input{V: "test"}, nil
 			},
 			nil,
 		}, {
-			"Wraps object + header inputs",
-			func(test Input, h http.Header) (Input, int, http.Header, error) {
-				return test, http.StatusOK, h, nil
+			"Wraps context + object inputs",
+			func(ctx APICtx, test Input) (Input, error) {
+				return test, nil
 			},
 			nil,
 		}, {
 			"Wraps context + object + header inputs",
-			func(ctx context.Context, test Input, h http.Header) (Input, int, http.Header, error) {
-				return test, http.StatusOK, h, nil
+			func(ctx APICtx, test Input, h http.Header) (Input, error) {
+				return test, nil
 			},
 			nil,
 		}, {
 			"Wraps object + error outputs",
-			func(test Input) (Input, error) {
+			func(ctx APICtx, test Input) (Input, error) {
 				return test, nil
 			},
 			nil,
 		}, {
 			"Wraps object + status + header outputs",
-			func(test Input) (Input, int, error) {
+			func(ctx APICtx, test Input) (Input, int, error) {
 				return test, http.StatusOK, nil
 			},
 			nil,
 		}, {
 			"Wraps object + status + header + error outputs",
-			func(test Input) (Input, int, http.Header, error) {
+			func(ctx APICtx, test Input) (Input, int, http.Header, error) {
 				return test, http.StatusOK, http.Header{}, nil
 			},
 			nil,
@@ -67,12 +73,24 @@ func TestWrappers(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			_, err := BuildEndpoint("post", test.fn)
+			h, err := BuildEndpoint("post", test.fn)
 			if test.err != nil {
-				assert.NotNil(t, err)
+				require.NotNil(t, err)
 			} else {
-				assert.EqualValues(t, test.err, err)
+				require.EqualValues(t, test.err, err)
 			}
+
+			ctx := APICtx{}
+			r := Input{V: "test"}
+			b, err := json.Marshal(r)
+			require.Nil(t, err)
+
+			req, err := http.NewRequest(http.MethodPost, "/", bytes.NewReader(b))
+			require.Nil(t, err)
+			resp := httptest.NewRecorder()
+
+			h(ctx, resp, req)
+
 		})
 	}
 }

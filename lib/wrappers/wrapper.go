@@ -7,12 +7,11 @@ import (
 	"strings"
 
 	"github.com/asaskevich/govalidator"
-	"github.com/gocraft/web"
 	log "github.com/sirupsen/logrus"
 )
 
 // HTTPHandler is a standard http endpoint handler for binding into a http mux
-type HTTPHandler func(ctx interface{}, rw web.ResponseWriter, req *web.Request)
+type HTTPHandler func(ctx interface{}, rw http.ResponseWriter, req *http.Request)
 
 // ErrorHandler type for handling errors in wrapped functions or encoders/decoders
 type ErrorHandler func(ctx interface{}, rw http.ResponseWriter, req *http.Request, code int, format string, args ...interface{})
@@ -74,6 +73,10 @@ func validateFn(fn interface{}) error {
 	if argCount < 1 || argCount > 3 {
 		return fmt.Errorf("Function %s invalid input parameter count", ftype.Name())
 	}
+	if argCount > 2 && ftype.In(2) != reflect.TypeOf(http.Header{}) {
+		return fmt.Errorf("Function %s third input parameter should be of type 'http.Header' not '%s'", ftype.Name(), ftype.In(2).Name())
+	}
+
 	returnCount := ftype.NumOut()
 	if returnCount < 1 || returnCount > 4 {
 		return fmt.Errorf("Function %s invalid output parameter count", ftype.Name())
@@ -94,12 +97,14 @@ func validateFn(fn interface{}) error {
 	// Parse input and output types
 	inputType, outputType := GetTypes(fn)
 
-	var a interface{}
-	if inputType == reflect.TypeOf(a) {
-		return fmt.Errorf("Function %s inputType may not be interface{}", ftype.Name())
-	}
-	if outputType == reflect.TypeOf(a) {
-		return fmt.Errorf("Function %s outputType may not be interface{}", ftype.Name())
+	if inputType != nil {
+		var a interface{}
+		if inputType == reflect.TypeOf(a) {
+			return fmt.Errorf("Function %s inputType may not be interface{}", ftype.Name())
+		}
+		if outputType == reflect.TypeOf(a) {
+			return fmt.Errorf("Function %s outputType may not be interface{}", ftype.Name())
+		}
 	}
 
 	return nil
@@ -113,7 +118,7 @@ func GetTypes(fn interface{}) (input, output reflect.Type) {
 	// Parse input and output types
 	var inputType reflect.Type
 	if ftype.NumIn() == 1 {
-		inputType = ftype.In(0)
+		inputType = nil
 	} else {
 		inputType = ftype.In(1)
 	}
@@ -149,42 +154,41 @@ func generateWrapper(method string, fn interface{}, args ...interface{}) HTTPHan
 		}
 	}
 
-	return func(ctx interface{}, rw web.ResponseWriter, r *web.Request) {
+	return func(ctx interface{}, rw http.ResponseWriter, req *http.Request) {
 		var err error
 
-		req := r.Request
+		// Generate input arguments
+		var inputs = []reflect.Value{reflect.ValueOf(ctx)}
+		if numIn > 1 && inputType != nil {
+			// Coerce input type
+			input := reflect.New(inputType)
+			err = decoder(method, req, input.Interface())
+			if err != nil {
+				errorHandler(ctx, rw, req, http.StatusBadRequest, "Data decoding error %s", err)
+				return
+			}
 
-		// Coerce context and input type
-		input := reflect.New(inputType)
-		err = decoder(method, req, input.Interface())
-		if err != nil {
-			errorHandler(ctx, rw, req, http.StatusBadRequest, "Data decoding error %s", err)
-			return
-		}
+			// Validate input fields
+			ok, err := validateHander(input.Interface())
+			if err != nil {
+				errorHandler(ctx, rw, req, http.StatusBadRequest, "Input data validation error %s", err)
+				return
+			}
+			if !ok {
+				errorHandler(ctx, rw, req, http.StatusBadRequest, "Input data validation failed")
+				return
+			}
 
-		// Validate input fields
-		ok, err := validateHander(input.Interface())
-		if err != nil {
-			errorHandler(ctx, rw, req, http.StatusBadRequest, "Input data validation error %s", err)
-			return
-		}
-		if !ok {
-			errorHandler(ctx, rw, req, http.StatusBadRequest, "Input data validation failed")
-			return
-		}
-
-		// Generate input values
-		var inputs []reflect.Value
-		switch numIn {
-		case 1:
-			inputs = []reflect.Value{input.Elem()}
-		case 2:
-			inputs = []reflect.Value{reflect.ValueOf(ctx), input.Elem()}
-		case 3:
-			inputs = []reflect.Value{reflect.ValueOf(ctx), input.Elem(), reflect.ValueOf(req.Header)}
-		default:
-			errorHandler(ctx, rw, req, http.StatusInternalServerError, "Invalid input parameter count")
-			return
+			// Append args to calling array
+			switch numIn {
+			case 2:
+				inputs = append(inputs, input.Elem())
+			case 3:
+				inputs = append(inputs, input.Elem(), reflect.ValueOf(req.Header))
+			default:
+				errorHandler(ctx, rw, req, http.StatusInternalServerError, "Invalid input parameter count")
+				return
+			}
 		}
 
 		// Call reflected function
@@ -215,7 +219,7 @@ func generateWrapper(method string, fn interface{}, args ...interface{}) HTTPHan
 		output := outputs[0].Interface()
 
 		// Validate output fields
-		ok, err = validateHander(output)
+		ok, err := validateHander(output)
 		if err != nil {
 			errorHandler(ctx, rw, req, http.StatusInternalServerError, "Output data validation error %s", err)
 			return

@@ -36,6 +36,12 @@ func New(router *web.Router, ctx interface{}, path string) Router {
 	}
 }
 
+func wrapGocraft(h wrappers.HTTPHandler) func(ctx interface{}, rw web.ResponseWriter, req *web.Request) {
+	return func(ctx interface{}, rw web.ResponseWriter, req *web.Request) {
+		h(ctx, rw, req.Request)
+	}
+}
+
 // RegisterEndpoint Register a route to the API router.
 // This takes a endpoint of the form func (c *context) endpoint(i inputStruct) (o outputStruct, error)
 // and generates an wrapper to handle translation and validation of input and output structures,
@@ -45,10 +51,11 @@ func (r *Router) RegisterEndpoint(route string, method string, f interface{}) er
 	log.Infof("Router '%s' attaching route %s with method %s (f: %+V)", r.path, route, method, f)
 
 	// Build endpoint wrapper
-	w, err := wrappers.BuildEndpoint(method, f)
+	h, err := wrappers.BuildEndpoint(method, f)
 	if err != nil {
 		return err
 	}
+	w := wrapGocraft(h)
 
 	// Fetch endpoint input/output instances
 	inType, outType := wrappers.GetTypes(f)

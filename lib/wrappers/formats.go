@@ -1,6 +1,7 @@
 package wrappers
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/gorilla/schema"
@@ -14,6 +15,14 @@ const AcceptKey = "accept"
 func decodeRequest(method string, req *http.Request, input interface{}) error {
 	var err error
 	var decoder = schema.NewDecoder()
+
+	if req == nil {
+		return fmt.Errorf("Unable to decode blank request")
+	}
+
+	if req.Body == nil {
+		return fmt.Errorf("Unable to decode request with no body")
+	}
 
 	// Fetch content type header
 	contentType := req.Header.Get(ContentTypeKey)

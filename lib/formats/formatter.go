@@ -31,6 +31,10 @@ func Decode(t string, r *http.Request, i interface{}) error {
 		t = DefaultRequestFormatter
 	}
 
+	if i == nil {
+		return fmt.Errorf("Unable to decode nil type")
+	}
+
 	// Find formatter and decode
 	if f, ok := formatters[t]; ok {
 		return f.Decode(r, i)
