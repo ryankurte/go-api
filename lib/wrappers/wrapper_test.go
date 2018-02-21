@@ -90,7 +90,6 @@ func TestWrappers(t *testing.T) {
 			resp := httptest.NewRecorder()
 
 			h(ctx, resp, req)
-
 		})
 	}
 }

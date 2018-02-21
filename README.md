@@ -57,7 +57,7 @@ And output parameters:
 - `(OutputType, int, error)`
 - `(OutputType, int, http.Header, error)` 
 
-The underlying mux is [gocraft/web](https://github.com/gocraft/web).
+The underlying mux is provided by [gocraft/web](https://github.com/gocraft/web) and standard `http.HandleFunc` or `web..
 
 ``` go
 import (

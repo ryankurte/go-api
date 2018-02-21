@@ -28,7 +28,7 @@ type Request struct {
 
 // Response Output structure for parsing
 type Response struct {
-	Message string
+	Message string `valid:"ascii,required"`
 }
 
 // FakeEndpoint AppContext Endpoint handler function

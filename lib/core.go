@@ -2,6 +2,7 @@ package api
 
 import (
 	"errors"
+	"net/http"
 	"path"
 
 	"github.com/gocraft/web"
@@ -60,8 +61,10 @@ func New(ctx interface{}, o *options.Base) (*API, error) {
 		base = base.Middleware(web.LoggerMiddleware)
 	}
 
-	// Enable CORS
-	h := security.CORS(base, o)
+	// Setup handlers
+	var h http.Handler = base
+	h = security.CORS(base, o)
+	h = security.CSP(h, o)
 
 	// Create server instance
 	var server servers.Handler
