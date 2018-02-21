@@ -1,13 +1,13 @@
-# go-api-builder
+# go-api
 
 A typed API builder project to remove a bunch of boilerplate and repetition from golang API projects.
-This wires together a bunch of common dependencies, uses some reflection based magic to provide typed API functions and common error handling, and is intended to encode some best practices in API endpoint security.
+This wires together a bunch of common dependencies, uses some reflection based magic to provide typed API functions and common error handling, and is intended to encode some best practices in API security.
 
 ## Status
 
-[![Build Status](https://travis-ci.org/ryankurte/go-api.-buildersvg?branch=master)](https://travis-ci.org/ryankurte/go-api-builder)
-[![Documentation](https://img.shields.io/badge/docs-godoc-blue.svg)](https://godoc.org/github.com/ryankurte/go-api-builder)
-[![Release](https://img.shields.io/github/release/ryankurte/go-api-builder.svg)](https://github.com/ryankurte/go-api-builder)
+[![Build Status](https://travis-ci.org/ryankurte/go-api.svg?branch=master)](https://travis-ci.org/ryankurte/go-api)
+[![Documentation](https://img.shields.io/badge/docs-godoc-blue.svg)](https://godoc.org/github.com/ryankurte/go-api)
+[![Release](https://img.shields.io/github/release/ryankurte/go-api.svg)](https://github.com/ryankurte/go-api)
 
 
 ## Overview
@@ -16,6 +16,7 @@ This wires together a bunch of common dependencies, uses some reflection based m
 - [formats](lib/formats) provide format encoding/decoding functions
 - [options](lib/options) provide base api server options and option parsing
 - [plugins](lib/plugins) provide plugins for meta analysis of the API implementation
+- [security](lib/security) provide security extensions for the API implementation
 - [servers](lib/servers) provide base server handling (ie. http server, AWS lambda)
 - [wrappers](lib/wrappers) provide wrapping functions for typed api endpoints
 
@@ -55,9 +56,11 @@ Handler functions support input parameters:
 And output parameters:
 - `(OutputType, error)`
 - `(OutputType, int, error)`
-- `(OutputType, int, http.Header, error)` 
+- `(OutputType, int, http.Header, error)`
 
-The underlying mux is provided by [gocraft/web](https://github.com/gocraft/web) and standard `http.HandleFunc` or `web..
+Where `ContextType`, `InputType` and `OutputType` are user defined structs and int is a `http.Status` code. 
+Input and output types are validated after decoding and prior to encoding using [asaskevich/govalidator](https://github.com/asaskevich/govalidator).
+The underlying mux is provided by [gocraft/web](https://github.com/gocraft/web).
 
 ``` go
 import (
@@ -82,10 +85,6 @@ if err != nil {
 err = api.RegisterEndpoint("/", "POST", (*AppContext).FakeEndpoint)
 
 ```
-
-
-Where int is a http.Status code. Input and output types are validated after decoding and prior to encoding using [asaskevich/govalidator](https://github.com/asaskevich/govalidator).
-
 
 You can then launch a server with `api.Run()` and exit wth `api.Close()`.
 
