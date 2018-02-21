@@ -5,8 +5,8 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
-	"github.com/ryankurte/go-api-server/lib"
-	"github.com/ryankurte/go-api-server/lib/options"
+	"github.com/ryankurte/go-api/lib"
+	"github.com/ryankurte/go-api/lib/options"
 )
 
 // AppConfig Application configuration object

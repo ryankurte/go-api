@@ -5,7 +5,7 @@ import (
 
 	"github.com/gorilla/handlers"
 
-	"github.com/ryankurte/go-api-server/lib/options"
+	"github.com/ryankurte/go-api/lib/options"
 )
 
 // CORS builds a Cross-Origin Resource Sharing (COS) handler around the provided handler

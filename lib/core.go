@@ -9,10 +9,10 @@ import (
 	"github.com/gorilla/sessions"
 	log "github.com/sirupsen/logrus"
 
-	"github.com/ryankurte/go-api-server/lib/options"
-	"github.com/ryankurte/go-api-server/lib/router"
-	"github.com/ryankurte/go-api-server/lib/security"
-	"github.com/ryankurte/go-api-server/lib/servers"
+	"github.com/ryankurte/go-api/lib/options"
+	"github.com/ryankurte/go-api/lib/router"
+	"github.com/ryankurte/go-api/lib/security"
+	"github.com/ryankurte/go-api/lib/servers"
 )
 
 // API is a core API server instance

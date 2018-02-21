@@ -8,7 +8,7 @@ import (
 
 	gcontext "github.com/gorilla/context"
 
-	"github.com/ryankurte/go-api-server/lib/options"
+	"github.com/ryankurte/go-api/lib/options"
 )
 
 // HTTP is an HTTP server based http handler

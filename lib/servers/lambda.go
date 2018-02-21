@@ -12,7 +12,7 @@ import (
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
 
-	"github.com/ryankurte/go-api-server/lib/options"
+	"github.com/ryankurte/go-api/lib/options"
 )
 
 // Lambda is an AWS Lambda based http handler

@@ -12,7 +12,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/ryankurte/go-api-server/lib/options"
+	"github.com/ryankurte/go-api/lib/options"
 )
 
 // AppContext Application Context object

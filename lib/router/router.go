@@ -8,7 +8,7 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
-	"github.com/ryankurte/go-api-server/lib/wrappers"
+	"github.com/ryankurte/go-api/lib/wrappers"
 )
 
 // Router instance

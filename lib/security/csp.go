@@ -5,7 +5,7 @@ import (
 
 	"github.com/ryankurte/go-csp"
 
-	"github.com/ryankurte/go-api-server/lib/options"
+	"github.com/ryankurte/go-api/lib/options"
 )
 
 // CSP builds a Content Security Policy (CSP) handler around the provided handler

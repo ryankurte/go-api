@@ -21,14 +21,14 @@ This wires together a bunch of common dependencies, uses some reflection based m
 
 ## Usage
 
-Install with `go get github.com/ryankurte/go-api-server`.
+Install with `go get github.com/ryankurte/go-api`.
 
 Create an application options object that inherits from `options.Base` and load with `options.Parse(&o)`.
 Options are parsed using [jessevdk/go-flags](https://github.com/jessevdk/go-flags).
 
 ``` go
 import (
-    "github.com/ryankurte/go-api-server/lib/options"
+    "github.com/ryankurte/go-api/lib/options"
 )
 
 type AppConfig struct {
@@ -61,7 +61,7 @@ The underlying mux is provided by [gocraft/web](https://github.com/gocraft/web) 
 
 ``` go
 import (
-    "github.com/ryankurte/go-api-server/lib/options"
+    "github.com/ryankurte/go-api/lib/options"
 )
 
 type AppContext struct {

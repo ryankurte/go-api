@@ -70,7 +70,6 @@ const (
 // Parse parses command line options
 func Parse(i interface{}) error {
 	_, err := flags.Parse(i)
-	fmt.Printf(err.Error())
 	return err
 }
 

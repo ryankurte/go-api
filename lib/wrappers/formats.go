@@ -6,7 +6,7 @@ import (
 
 	"github.com/gorilla/schema"
 
-	"github.com/ryankurte/go-api-server/lib/formats"
+	"github.com/ryankurte/go-api/lib/formats"
 )
 
 const ContentTypeKey = "content-type"
