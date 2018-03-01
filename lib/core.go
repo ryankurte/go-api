@@ -18,9 +18,10 @@ import (
 // API is a core API server instance
 type API struct {
 	router.Router
-	options *options.Base
-	logger  log.FieldLogger
-	server  servers.Handler
+	options      *options.Base
+	logger       log.FieldLogger
+	server       servers.Handler
+	sessionStore sessions.Store
 }
 
 // New creates a new API server
@@ -48,6 +49,7 @@ func New(ctx interface{}, o *options.Base) (*API, error) {
 	if o.ExternalAddress != "" {
 		sessionStore.Options.Domain = o.ExternalAddress
 	}
+	a.sessionStore = sessionStore
 
 	// Enable static file hosting if configured
 	if o.StaticDir != "" {
@@ -80,6 +82,11 @@ func New(ctx interface{}, o *options.Base) (*API, error) {
 	a.server = server
 
 	return &a, nil
+}
+
+// SessionStore fetches the API service session store
+func (api *API) SessionStore() sessions.Store {
+	return api.sessionStore
 }
 
 // Run launches an API server

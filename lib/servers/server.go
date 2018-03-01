@@ -33,7 +33,7 @@ func (s *HTTP) Run() {
 
 	s.server = http.Server{Addr: bindAddress, Handler: contextHandler}
 
-	s.logger.Infof("Starting http server at %s", bindAddress)
+	s.logger.Infof("Starting http server at %s (bind: %s)", s.options.ExternalAddress, bindAddress)
 
 	if s.options.NoTLS {
 		s.logger.Warn("TLS IS DISABLED. USE EXTERNAL TLS TERMINATION.")

@@ -13,7 +13,7 @@ type Base struct {
 	Mode            string `short:"m" long:"mode" description:"Server mode" choice:"http" choice:"lambda" default:"http"`
 	BindAddress     string `short:"b" long:"address" description:"Address to bind API server" default:"0.0.0.0"`
 	Port            string `short:"p" long:"port" description:"Port on which to bind API server" default:"10001"`
-	ExternalAddress string `short:"e" long:"external-address" description:"External address for connection to server" default:"localhost"`
+	ExternalAddress string `short:"e" long:"external-address" description:"External address for connection to server" default:"localhost:10001"`
 	StaticDir       string `short:"s" long:"static-dir" description:"Directory to serve static content from (if specified)"`
 
 	TLS `namespace:"tls" group:"Transport Layer Security (TLS) options"`
@@ -24,6 +24,22 @@ type Base struct {
 
 	CORS `namespace:"cors" group:"Cross Origin Resource Sharing (CORS) settings"`
 	CSP  `namespace:"csp" group:"Content Security Policy (CSP) settings"`
+}
+
+func (b *Base) GetExternalAddress() string {
+	if b.TLS.NoTLS {
+		return fmt.Sprintf("http://%s", b.ExternalAddress)
+	} else {
+		return fmt.Sprintf("https://%s", b.ExternalAddress)
+	}
+}
+
+func (b *Base) GetBindAddress() string {
+	if b.TLS.NoTLS {
+		return fmt.Sprintf("http://%s:%s", b.BindAddress, b.Port)
+	} else {
+		return fmt.Sprintf("https://%s:%s", b.BindAddress, b.Port)
+	}
 }
 
 // TLS configuration options
