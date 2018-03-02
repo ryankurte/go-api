@@ -19,6 +19,7 @@ type Base struct {
 	TLS `namespace:"tls" group:"Transport Layer Security (TLS) options"`
 
 	CookieSecret string `long:"cookie-secret" description:"Secret for session cookie encryption (defaults to a random key)"`
+	Session      `namespace:"cookie" group:"Session storage options"`
 
 	LogEndpoints bool `long:"log-endpoints" description:"Enable endpoint logging"`
 
@@ -40,6 +41,11 @@ func (b *Base) GetBindAddress() string {
 	} else {
 		return fmt.Sprintf("https://%s:%s", b.BindAddress, b.Port)
 	}
+}
+
+type Session struct {
+	Secret        string `long:"secret" description:"Secret for session cookie encryption (defaults to a random key)"`
+	DisableSecure bool   `long:"disable-secure" description:"Disable secure cookie flag (DEV USE ONLY)"`
 }
 
 // TLS configuration options

@@ -79,24 +79,28 @@ func (r *Router) RegisterEndpoint(route string, method string, f interface{}) er
 // Register registers a basic http or gocraft/web route handler without any modification
 // This does not currently call any meta plugins.
 func (r *Router) Register(route string, method string, f interface{}) error {
+	log.Infof("Router '%s' attaching route '%s' with method '%s' (f: %+V)", r.path, route, method, f)
+
 	switch method {
 	case http.MethodGet:
-		r.router.Get(route, f)
+		r.router = r.router.Get(route, f)
 	case http.MethodPost:
-		r.router.Post(route, f)
+		r.router = r.router.Post(route, f)
 	case http.MethodPut:
-		r.router.Put(route, f)
+		r.router = r.router.Put(route, f)
 	case http.MethodDelete:
-		r.router.Delete(route, f)
+		r.router = r.router.Delete(route, f)
 	case http.MethodPatch:
-		r.router.Patch(route, f)
+		r.router = r.router.Patch(route, f)
 	case http.MethodHead:
-		r.router.Head(route, f)
+		r.router = r.router.Head(route, f)
 	case http.MethodOptions:
-		r.router.Options(route, f)
+		r.router = r.router.Options(route, f)
 	default:
+		log.Errorf("Invalid HTTP method: %s", method)
 		return fmt.Errorf("Invalid HTTP method: %s", method)
 	}
+
 	return nil
 }
 
@@ -119,9 +123,8 @@ func (r *Router) RegisterMiddleware() error {
 }
 
 // Middleware Attach standard middleware to an API router
-func (r *Router) Middleware(fn interface{}) *Router {
-	r.router.Middleware(fn)
-	return r
+func (r *Router) Middleware(fn interface{}) {
+	r.router = r.router.Middleware(fn)
 }
 
 // GetBaseRouter Fetch the underlying router.

@@ -37,49 +37,25 @@ func New(ctx interface{}, o *options.Base) (*API, error) {
 	a.Router = router.New(base, ctx, "")
 
 	// Attach session storage
-	if o.CookieSecret == "" {
-		o.CookieSecret, err = options.GenerateSecret(256)
+	if o.Session.Secret == "" {
+		a.options.Session.Secret, err = options.GenerateSecret(256)
 		if err != nil {
 			return nil, err
 		}
 	}
-	sessionStore := sessions.NewCookieStore([]byte(o.CookieSecret))
-	sessionStore.Options.Secure = true
+
+	sessionStore := sessions.NewCookieStore([]byte(o.Session.Secret))
+	if a.options.Session.DisableSecure {
+		log.Warn("SECURE COOKIE FLAG IS DISABLED. DEVELOPMENT USE ONLY.")
+		sessionStore.Options.Secure = false
+	} else {
+		sessionStore.Options.Secure = true
+	}
 	sessionStore.Options.HttpOnly = true
-	if o.ExternalAddress != "" {
+	if a.options.ExternalAddress != "" {
 		sessionStore.Options.Domain = o.ExternalAddress
 	}
 	a.sessionStore = sessionStore
-
-	// Enable static file hosting if configured
-	if o.StaticDir != "" {
-		staticPath := path.Clean(o.StaticDir)
-		base = base.Middleware(web.StaticMiddleware(staticPath))
-		log.Printf("Serving static content from: %s\n", staticPath)
-	}
-
-	// Enable endpoint logging if specified
-	if o.LogEndpoints {
-		base = base.Middleware(web.LoggerMiddleware)
-	}
-
-	// Setup handlers
-	var h http.Handler = base
-	h = security.CORS(base, o)
-	h = security.CSP(h, o)
-
-	// Create server instance
-	var server servers.Handler
-	switch o.Mode {
-	case options.ModeHTTP:
-		server = servers.NewHTTP(o, h)
-	case options.ModeLambda:
-		server = servers.NewLambda(o, h)
-	default:
-		log.Errorf("Unhandled mode: '%s'", o.Mode)
-		return nil, errors.New("unhandled server mode")
-	}
-	a.server = server
 
 	return &a, nil
 }
@@ -90,8 +66,42 @@ func (api *API) SessionStore() sessions.Store {
 }
 
 // Run launches an API server
-func (api *API) Run() {
+func (api *API) Run() error {
+	base := api.GetBaseRouter()
+
+	// Enable static file hosting if configured
+	if api.options.StaticDir != "" {
+		staticPath := path.Clean(api.options.StaticDir)
+		base = base.Middleware(web.StaticMiddleware(staticPath))
+		log.Printf("Serving static content from: '%s'", staticPath)
+	}
+
+	// Enable endpoint logging if specified
+	if api.options.LogEndpoints {
+		base = base.Middleware(web.LoggerMiddleware)
+	}
+
+	// Setup handlers
+	var h http.Handler = base
+	h = security.CORS(h, api.options)
+	h = security.CSP(h, api.options)
+
+	// Create server instance
+	var server servers.Handler
+	switch api.options.Mode {
+	case options.ModeHTTP:
+		server = servers.NewHTTP(api.options, h)
+	case options.ModeLambda:
+		server = servers.NewLambda(api.options, h)
+	default:
+		log.Errorf("Unhandled mode: '%s'", api.options.Mode)
+		return errors.New("unhandled server mode")
+	}
+	api.server = server
+
 	api.server.Run()
+
+	return nil
 }
 
 // Close closes an API server (if bound)
