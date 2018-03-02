@@ -1,10 +1,13 @@
 language: go
-
 go:
-- 1.10
+- 1.9
+
+install:
+- go get ./...
 
 script:
 - go test -v ./...
+- go build . && ./go-api -h
 
 notifications:
   email: false
